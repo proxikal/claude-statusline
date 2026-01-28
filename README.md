@@ -1,6 +1,49 @@
-# Claude Code Statusline Configuration Guide
+# Claude Code Statusline
 
-A highly customizable, colorful statusline for Claude Code with dynamic progress indicators, token tracking, git integration, and 16 configurable sections.
+A highly customizable, colorful statusline for Claude Code with dynamic progress indicators, token tracking, git integration, automatic updates, and 16 configurable sections.
+
+## Features
+
+- **16 Configurable Sections**: Model name, progress bar, tokens, git, directory, time, and more
+- **Dynamic Progress Bar**: Color-coded context usage visualization (green/yellow/red)
+- **Token Tracking**: Input/output tokens with autocompact warnings
+- **Session Cost Calculator**: Real-time cost tracking based on Anthropic API pricing
+- **Git Integration**: Shows current branch when in a git repository
+- **Vim Mode Support**: Display INSERT/NORMAL mode indicators
+- **Automatic Updates**: Check for new versions from GitHub (optional)
+- **Session-Specific Cache**: Prevents data blinking, auto-cleaned when session ends
+- **Fully Customizable**: Colors, icons, ordering, thresholds - everything is configurable
+- **256-Color Support**: Use the full ANSI color palette
+- **Modular Architecture**: Enable/disable sections individually
+
+## Installation
+
+1. Clone this repository or download the files
+2. Copy files to `~/.claude/statusline/`:
+   ```bash
+   mkdir -p ~/.claude/statusline
+   cp command.sh config.json README.md ~/.claude/statusline/
+   chmod +x ~/.claude/statusline/command.sh
+   ```
+
+3. Update your `~/.claude/settings.json`:
+   ```json
+   {
+     "statusLine": {
+       "type": "command",
+       "command": "~/.claude/statusline/command.sh",
+       "padding": 0
+     }
+   }
+   ```
+
+4. Restart Claude Code or start a new session
+
+## Requirements
+
+- `jq` (JSON processor) - Install with: `brew install jq` (macOS) or `apt-get install jq` (Linux)
+- `bc` (calculations)
+- `git` (optional, for git branch display)
 
 ## Overview
 
@@ -28,7 +71,7 @@ Your statusline can display up to 16 different sections:
 
 ## Configuration File
 
-Edit `~/.claude/statusline-config.json` to customize your statusline. All changes take effect on the next message.
+Edit `~/.claude/statusline/config.json` to customize your statusline. All changes take effect on the next message.
 
 ---
 
@@ -553,21 +596,21 @@ Result: No emoji/symbols, just text and colors.
 
 1. Check that the script is executable:
    ```bash
-   chmod +x ~/.claude/statusline-command.sh
+   chmod +x ~/.claude/statusline/command.sh
    ```
 
 2. Verify settings.json points to the script:
    ```json
    "statusLine": {
      "type": "command",
-     "command": "/Users/proxikal/.claude/statusline-command.sh",
+     "command": "~/.claude/statusline/command.sh",
      "padding": 0
    }
    ```
 
 3. Test the script manually:
    ```bash
-   echo '{"model":{"display_name":"Test"},"workspace":{"current_dir":"/test"}}' | ~/.claude/statusline-command.sh
+   echo '{"model":{"display_name":"Test"},"workspace":{"current_dir":"/test"}}' | ~/.claude/statusline/command.sh
    ```
 
 ### Colors not showing
@@ -580,8 +623,8 @@ Result: No emoji/symbols, just text and colors.
 
 - Restart Claude Code or start a new session
 - Check JSON syntax (commas, quotes, brackets)
-- Verify config file path: `~/.claude/statusline-config.json`
-- Use a JSON validator: `jq . ~/.claude/statusline-config.json`
+- Verify config file path: `~/.claude/statusline/config.json`
+- Use a JSON validator: `jq . ~/.claude/statusline/config.json`
 
 ### Icons not displaying
 
@@ -597,9 +640,60 @@ Result: No emoji/symbols, just text and colors.
 
 ### Blinking sections
 
-The caching system prevents blinking when opening "/" menus. If you experience blinking:
-- Verify cache files exist: `ls /tmp/statusline-cache-*`
+The caching system prevents blinking when opening "/" menus. Cache files are session-specific and automatically cleaned up when the session ends.
+
+If you experience blinking:
+- Cache files are stored in `${TMPDIR:-/tmp}/claude-statusline-${PPID}/`
 - Enable debug logging to investigate: `"debug": { "enabled": true }`
+- Each terminal session has its own cache directory
+
+---
+
+## Automatic Updates
+
+The statusline can check for updates from GitHub automatically once per session.
+
+### Configuration
+
+```json
+"updates": {
+  "enabled": true,              // Enable/disable update checking
+  "autoUpdate": false,          // Auto-download updates (false = notification only)
+  "repository": "https://github.com/proxikal/claude-statusline",
+  "notificationDuration": 30    // Seconds to show update notification
+}
+```
+
+### How It Works
+
+- **Check once per session**: Update check happens only on first statusline render
+- **Notification**: If `autoUpdate` is `false`, shows update message in statusline for configured duration
+- **Auto-update**: If `autoUpdate` is `true`, automatically downloads and installs the latest version
+- **Session-specific**: Each new Claude session checks once
+
+### Safety
+
+- Set `autoUpdate: false` (default) to manually control updates
+- Only enable `autoUpdate` if you trust the repository source
+- Update notifications appear in the statusline temporarily, then disappear
+
+### Manual Update
+
+To manually update:
+```bash
+cd ~/.claude/statusline
+curl -O https://raw.githubusercontent.com/proxikal/claude-statusline/main/command.sh
+curl -O https://raw.githubusercontent.com/proxikal/claude-statusline/main/config.json
+curl -O https://raw.githubusercontent.com/proxikal/claude-statusline/main/README.md
+chmod +x command.sh
+```
+
+Or use git:
+```bash
+cd ~/path/to/claude-statusline
+git pull
+cp command.sh config.json README.md ~/.claude/statusline/
+```
 
 ---
 
@@ -635,24 +729,17 @@ Remember to disable debug mode after troubleshooting to avoid log file growth.
 ### Create Backup
 
 ```bash
-cp ~/.claude/statusline-command.sh ~/.claude/statusline-command.sh.backup
-cp ~/.claude/statusline-config.json ~/.claude/statusline-config.json.backup
+cp ~/.claude/statusline/command.sh ~/.claude/statusline/command.sh.backup
+cp ~/.claude/statusline/config.json ~/.claude/statusline/config.json.backup
 ```
 
 ### Restore from Backup
 
 ```bash
-cp ~/.claude/statusline-command.sh.backup ~/.claude/statusline-command.sh
-cp ~/.claude/statusline-config.json.backup ~/.claude/statusline-config.json
-chmod +x ~/.claude/statusline-command.sh
+cp ~/.claude/statusline/command.sh.backup ~/.claude/statusline/command.sh
+cp ~/.claude/statusline/config.json.backup ~/.claude/statusline/config.json
+chmod +x ~/.claude/statusline/command.sh
 ```
-
-### Available Backups
-
-Your system has these backup versions:
-- `.NO-JSON.backup` - Original version before JSON config system
-- `.pre-rewrite` - Version before modular rewrite with 16 sections
-- `.backup` - Most recent backup before current version
 
 ---
 
@@ -722,15 +809,37 @@ Valid section names for `sections` and `order`:
 
 ## Technical Details
 
-- **Script location**: `~/.claude/statusline-command.sh`
-- **Config location**: `~/.claude/statusline-config.json`
-- **Cache location**: `/tmp/statusline-cache-*`
+- **Script location**: `~/.claude/statusline/command.sh`
+- **Config location**: `~/.claude/statusline/config.json`
+- **Cache location**: `${TMPDIR:-/tmp}/claude-statusline-${PPID}/` (session-specific)
+- **Repository**: https://github.com/proxikal/claude-statusline
 - **Requires**: `jq` (JSON processor), `bc` (calculations), `git` (optional)
-- **Updates**: Every message (throttled to 300ms max)
+- **Updates**: Every message
 - **Context window**: 200k tokens (33k autocompact buffer)
 - **Architecture**: Function-based rendering with modular sections
+- **Cache cleanup**: Automatic when session ends (PPID-based isolation)
 
 ---
+
+## Contributing
+
+Contributions are welcome! If you have ideas for new features or improvements:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+Please ensure your code follows the existing style and test thoroughly before submitting.
+
+## License
+
+MIT License - Feel free to use and modify as needed.
+
+## Support
+
+- **Issues**: https://github.com/proxikal/claude-statusline/issues
+- **Discussions**: https://github.com/proxikal/claude-statusline/discussions
 
 ## Credits
 
