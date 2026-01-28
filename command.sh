@@ -5,6 +5,9 @@
 # Complete rewrite with modular architecture and ordering system
 ################################################################################
 
+# Version
+STATUSLINE_VERSION="1.0.0"
+
 # Read JSON input from stdin
 input=$(cat)
 
@@ -159,6 +162,53 @@ if [ -n "$total_output" ] && [ "$total_output" != "null" ]; then
     echo "$total_output" > "$CACHE_OUTPUT" 2>/dev/null
 else
     [ -f "$CACHE_OUTPUT" ] && total_output=$(cat "$CACHE_OUTPUT" 2>/dev/null)
+fi
+
+################################################################################
+# UPDATE CHECKING SYSTEM (once per session)
+################################################################################
+
+UPDATE_CHECK_MARKER="${CACHE_DIR}/.update-checked"
+UPDATE_AVAILABLE_FILE="${CACHE_DIR}/.update-available"
+UPDATE_TIMESTAMP_FILE="${CACHE_DIR}/.update-timestamp"
+
+# Check for updates only once per session
+if [ ! -f "$UPDATE_CHECK_MARKER" ]; then
+    # Read update settings from config
+    UPDATE_ENABLED=$(read_config '.updates.enabled' 'true')
+    UPDATE_AUTO=$(read_config '.updates.autoUpdate' 'false')
+    UPDATE_REPO=$(read_config '.updates.repository' 'https://github.com/proxikal/claude-statusline')
+
+    if [ "$UPDATE_ENABLED" = "true" ]; then
+        # Fetch latest version from GitHub (background to avoid blocking)
+        {
+            LATEST_VERSION=$(curl -s "${UPDATE_REPO}/raw/main/command.sh" | grep -m1 'STATUSLINE_VERSION=' | cut -d'"' -f2 2>/dev/null)
+
+            if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$STATUSLINE_VERSION" ]; then
+                # Update available
+                echo "$LATEST_VERSION" > "$UPDATE_AVAILABLE_FILE"
+                date +%s > "$UPDATE_TIMESTAMP_FILE"
+
+                # Auto-update if enabled
+                if [ "$UPDATE_AUTO" = "true" ]; then
+                    cd "$SCRIPT_DIR" || exit
+                    curl -s -o command.sh.new "${UPDATE_REPO}/raw/main/command.sh" && \
+                    curl -s -o config.json.new "${UPDATE_REPO}/raw/main/config.json" && \
+                    curl -s -o README.md.new "${UPDATE_REPO}/raw/main/README.md" && \
+                    mv command.sh command.sh.backup && \
+                    mv config.json config.json.backup && \
+                    mv README.md README.md.backup && \
+                    mv command.sh.new command.sh && \
+                    mv config.json.new config.json && \
+                    mv README.md.new README.md && \
+                    chmod +x command.sh
+                fi
+            fi
+        } &
+    fi
+
+    # Mark that we've checked for updates this session
+    touch "$UPDATE_CHECK_MARKER"
 fi
 
 # Debug logging
@@ -519,6 +569,26 @@ render_time() {
     echo "${COLOR_TIME}${icon}${current_time}${RESET}"
 }
 
+render_updateNotification() {
+    # Check if update is available and within notification duration
+    [ ! -f "$UPDATE_AVAILABLE_FILE" ] && return
+    [ ! -f "$UPDATE_TIMESTAMP_FILE" ] && return
+
+    local update_version=$(cat "$UPDATE_AVAILABLE_FILE" 2>/dev/null)
+    local update_time=$(cat "$UPDATE_TIMESTAMP_FILE" 2>/dev/null)
+    local current_time=$(date +%s)
+    local elapsed=$((current_time - update_time))
+    local duration=$(read_config '.updates.notificationDuration' '30')
+
+    # Only show if within duration window
+    [ "$elapsed" -gt "$duration" ] && return
+
+    local icon="🔔"
+    [ "$ICONS_ENABLED" = "false" ] && icon=""
+
+    echo "${COLOR_VIM_INSERT}${icon} Update available: v${update_version}${RESET}"
+}
+
 ################################################################################
 # BUILD STATUSLINE USING ORDER SYSTEM
 ################################################################################
@@ -537,6 +607,14 @@ sections=$(echo "$section_order" | jq -r '.[]' 2>/dev/null)
 # Build statusline
 output=""
 first_section=true
+
+# Always check for update notification first (overrides order)
+update_notification=$(render_updateNotification 2>/dev/null)
+if [ -n "$update_notification" ]; then
+    output="$update_notification"
+    first_section=false
+    debug_log "Section SHOWN: updateNotification"
+fi
 
 for section in $sections; do
     # Check if section is enabled
