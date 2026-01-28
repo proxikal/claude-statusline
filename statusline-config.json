@@ -138,5 +138,14 @@
     "_comment": "Debug logging to investigate blinking issues. Set enabled to true to log statusline data.",
     "enabled": true,
     "logFile": "/tmp/statusline-debug.log"
+  },
+
+  "updates": {
+    "_comment": "Automatic update checking from GitHub",
+    "enabled": true,
+    "autoUpdate": false,
+    "repository": "https://github.com/proxikal/claude-statusline",
+    "notificationDuration": 30,
+    "_durationComment": "Seconds to show update notification in statusline"
   }
 }
