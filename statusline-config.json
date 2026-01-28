@@ -1,0 +1,142 @@
+{
+  "_comment": "Claude Code Statusline Configuration",
+  "_description": "Customize your statusline appearance. Edit values below to change colors, icons, and behavior.",
+
+  "order": [
+    "model",
+    "progressBar",
+    "totalTokens",
+    "tokens",
+    "outputStyle",
+    "vimMode",
+    "cacheStats",
+    "sessionCost",
+    "lastCallTokens",
+    "agentName",
+    "appVersion",
+    "git",
+    "projectName",
+    "directory",
+    "time"
+  ],
+
+  "sections": {
+    "_comment": "Show or hide sections. Set to true to show, false to hide.",
+    "model": true,
+    "progressBar": true,
+    "totalTokens": true,
+    "tokens": true,
+    "git": true,
+    "directory": true,
+    "time": true,
+    "outputStyle": false,
+    "vimMode": false,
+    "sessionCost": true,
+    "cacheStats": false,
+    "lastCallTokens": false,
+    "agentName": false,
+    "appVersion": false,
+    "projectName": false
+  },
+
+  "colors": {
+    "_comment": "ANSI color codes. Use standard codes (30-37, 90-97) or 256-color codes (38;5;N for foreground, 48;5;N for background)",
+    "model": "36",
+    "percentage": "97",
+    "totalTokens": {
+      "normal": "97",
+      "warning": "38;5;208",
+      "critical": "31"
+    },
+    "tokens": {
+      "icon": "34",
+      "input": "38;5;39",
+      "output": "38;5;27"
+    },
+    "git": "35",
+    "directory": "31",
+    "time": "36",
+    "separator": "37",
+    "outputStyle": "38;5;213",
+    "vimMode": {
+      "insert": "38;5;46",
+      "normal": "38;5;33"
+    },
+    "sessionCost": "38;5;226",
+    "cacheStats": "38;5;141",
+    "lastCallTokens": "38;5;249",
+    "agentName": "38;5;208",
+    "appVersion": "38;5;244",
+    "projectName": "38;5;99"
+  },
+
+  "progressBar": {
+    "_comment": "Progress bar appearance and behavior",
+    "width": 20,
+    "thresholds": {
+      "_comment": "Percentage thresholds for color changes",
+      "yellow": 60,
+      "red": 80
+    },
+    "colors": {
+      "_comment": "Background colors (256-color palette). Format: 48;5;N",
+      "green": "48;5;46",
+      "yellow": "48;5;226",
+      "red": "48;5;196",
+      "empty": "48;5;236"
+    },
+    "textColors": {
+      "_comment": "Text color for percentage overlay",
+      "onFilled": "30",
+      "onEmpty": "97"
+    }
+  },
+
+  "tokens": {
+    "_comment": "Token display and autocompact warning thresholds",
+    "warningThresholds": {
+      "_comment": "Remaining tokens before color changes (based on 33k autocompact buffer)",
+      "warning": 60000,
+      "critical": 40000
+    }
+  },
+
+  "sessionCost": {
+    "_comment": "Session cost display settings. Cost is calculated based on Anthropic API pricing (Jan 2025). Haiku: $0.80/$4.00 input/output per million. Sonnet: $3.00/$15.00. Opus: $15.00/$75.00. Cache write is 1.25x input, cache read is 10% input.",
+    "currencySymbol": "$",
+    "decimals": 2
+  },
+
+  "icons": {
+    "_comment": "Icons for each section. Set enabled to false to hide all icons, or customize individual icons.",
+    "enabled": true,
+    "tokens": "⚡",
+    "git": "⎇",
+    "directory": "📁",
+    "time": "⏱",
+    "outputStyle": "✨",
+    "vimMode": "✏️",
+    "sessionCost": "💰",
+    "cacheStats": "💾",
+    "lastCallTokens": "🔄",
+    "agentName": "🤖",
+    "appVersion": "ⓘ",
+    "projectName": "📂"
+  },
+
+  "time": {
+    "_comment": "Time display format: '12h' for 12-hour (2:30 PM), '24h' for 24-hour (14:30)",
+    "format": "24h"
+  },
+
+  "separator": {
+    "_comment": "Character between sections. Try: │ ┃ | ▏ ▎",
+    "character": "│"
+  },
+
+  "debug": {
+    "_comment": "Debug logging to investigate blinking issues. Set enabled to true to log statusline data.",
+    "enabled": true,
+    "logFile": "/tmp/statusline-debug.log"
+  }
+}
