@@ -2,6 +2,17 @@
 
 A highly customizable, colorful statusline for Claude Code with dynamic progress indicators, token tracking, git integration, automatic updates, and 16 configurable sections.
 
+## Screenshots
+
+![Demo 1](demo-1.png)
+*Example statusline showing model, progress bar, tokens, git branch, and directory*
+
+![Demo 2](demo-2.png)
+*Statusline with session cost tracking and cache statistics enabled*
+
+![Demo 3](demo-3.png)
+*Customized layout with different color scheme and icon configuration*
+
 ## Features
 
 - **16 Configurable Sections**: Model name, progress bar, tokens, git, directory, time, and more
