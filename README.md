@@ -1,6 +1,6 @@
 # Claude Code Statusline
 
-A highly customizable, colorful statusline for Claude Code with dynamic progress indicators, token tracking, git integration, automatic updates, and 16 configurable sections.
+A highly customizable, colorful statusline for Claude Code with dynamic progress indicators, token tracking, git integration, automatic updates, and 18 configurable sections.
 
 ## Screenshots
 
@@ -15,7 +15,8 @@ A highly customizable, colorful statusline for Claude Code with dynamic progress
 
 ## Features
 
-- **16 Configurable Sections**: Model name, progress bar, tokens, git, directory, time, and more
+- **18 Configurable Sections**: Model name, progress bar, tokens, git, directory, last message, session duration, and more
+- **Theme Presets**: Minimal, developer, and full themes with custom theme support
 - **Dynamic Progress Bar**: Color-coded context usage visualization (green/yellow/red)
 - **Token Tracking**: Input/output tokens with autocompact warnings
 - **Session Cost Calculator**: Real-time cost tracking based on Anthropic API pricing
@@ -29,15 +30,47 @@ A highly customizable, colorful statusline for Claude Code with dynamic progress
 
 ## Installation
 
-1. Clone this repository or download the files
-2. Copy files to `~/.claude/statusline/`:
+### Option 1: Using the Deployment Script (Recommended for Development)
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/proxikal/claude-statusline.git
+   cd claude-statusline
+   ```
+
+2. Deploy to global location:
+   ```bash
+   ./deploy.sh
+   # or use: just deploy
+   ```
+
+3. Update your `~/.claude/settings.json`:
+   ```json
+   {
+     "statusLine": {
+       "type": "command",
+       "command": "~/.claude/statusline/command.sh",
+       "padding": 0
+     }
+   }
+   ```
+
+The deployment script automatically:
+- Creates backups of existing files
+- Syncs only changed files
+- Shows what was updated/skipped
+- Makes command.sh executable
+
+### Option 2: Manual Installation
+
+1. Copy files to `~/.claude/statusline/`:
    ```bash
    mkdir -p ~/.claude/statusline
    cp command.sh config.json README.md ~/.claude/statusline/
    chmod +x ~/.claude/statusline/command.sh
    ```
 
-3. Update your `~/.claude/settings.json`:
+2. Update your `~/.claude/settings.json`:
    ```json
    {
      "statusLine": {
@@ -58,17 +91,17 @@ A highly customizable, colorful statusline for Claude Code with dynamic progress
 
 ## Overview
 
-Your statusline can display up to 16 different sections:
+Your statusline can display up to 18 different sections:
 
 ### Core Sections (Enabled by Default)
-- **Model name** - Current Claude model (e.g., "Claude 3.5 Sonnet")
+- **Model name** - Current Claude model with configurable aliases (e.g., "Opus 4.6")
 - **Dynamic progress bar** - Changes color based on context usage (green/yellow/red)
 - **Context percentage** - Centered inside progress bar with adaptive text colors
 - **Total tokens** - Used/available with autocompact warnings (e.g., "80k/200k")
 - **Input/output tokens** - Cumulative session tokens with arrows (↑/↓)
 - **Git branch** - Current branch if in a git repository
 - **Current directory** - Basename of working directory
-- **Current time** - 12h or 24h format
+- **Last message** - Time of last message (timestamp or elapsed format, e.g., "2m ago")
 
 ### Optional Sections (Disabled by Default)
 - **Output style** - Current output style (e.g., "Explanatory", "Learning")
@@ -79,6 +112,7 @@ Your statusline can display up to 16 different sections:
 - **Agent name** - Shows when running with --agent flag
 - **App version** - Claude Code version number
 - **Project name** - Root project directory (vs current directory)
+- **Session duration** - How long the current session has been running (e.g., "23m", "1h 15m")
 
 ## Configuration File
 
@@ -102,7 +136,7 @@ The `order` array in your config determines the sequence sections appear:
   "tokens",
   "git",
   "directory",
-  "time"
+  "lastMessage"
 ]
 ```
 
@@ -112,7 +146,7 @@ Simply rearrange the array:
 
 ```json
 "order": [
-  "time",
+  "lastMessage",
   "directory",
   "git",
   "progressBar",
@@ -122,7 +156,7 @@ Simply rearrange the array:
 ]
 ```
 
-Result: Time appears first, model appears last.
+Result: Last message appears first, model appears last.
 
 ### Rules
 
@@ -144,7 +178,7 @@ Control which elements appear in your statusline:
   "tokens": true,             // Input/output token counts
   "git": true,               // Git branch
   "directory": true,         // Current directory name
-  "time": true,              // Current time
+  "lastMessage": true,       // Last message time (timestamp or elapsed)
 
   // Optional sections (disabled by default)
   "outputStyle": false,      // Output style name
@@ -154,7 +188,8 @@ Control which elements appear in your statusline:
   "lastCallTokens": false,   // Last message tokens
   "agentName": false,        // Agent name (when using --agent)
   "appVersion": false,       // Claude Code version
-  "projectName": false       // Root project directory
+  "projectName": false,      // Root project directory
+  "sessionDuration": false   // Session duration (e.g., "23m", "1h 15m")
 }
 ```
 
@@ -194,7 +229,7 @@ Examples:
   "percentage": "97",         // Percentage text in progress bar (bright white)
   "git": "35",               // Git branch color (magenta)
   "directory": "31",         // Directory name color (red)
-  "time": "36",              // Time display color (cyan)
+  "lastMessage": "36",       // Last message time color (cyan)
   "separator": "37"          // Separator character color (white)
 }
 ```
@@ -213,7 +248,8 @@ Examples:
   "lastCallTokens": "38;5;249",    // Last call tokens (gray)
   "agentName": "38;5;208",         // Agent name (orange)
   "appVersion": "38;5;244",        // App version (dark gray)
-  "projectName": "38;5;99"         // Project name (purple)
+  "projectName": "38;5;99",        // Project name (purple)
+  "sessionDuration": "38;5;117"    // Session duration (light blue)
 }
 ```
 
@@ -327,7 +363,7 @@ Control when total tokens change color (based on autocompact buffer at 33k):
   "tokens": "⚡",          // Icon before token counts
   "git": "⎇",             // Icon before git branch
   "directory": "📁",      // Icon before directory name
-  "time": "⏱",            // Icon before time
+  "lastMessage": "⏱",     // Icon before last message time
 
   // Optional sections
   "outputStyle": "✨",     // Icon before output style
@@ -337,7 +373,8 @@ Control when total tokens change color (based on autocompact buffer at 33k):
   "lastCallTokens": "🔄", // Icon before last call tokens
   "agentName": "🤖",      // Icon before agent name
   "appVersion": "ⓘ",     // Icon before app version
-  "projectName": "📂"     // Icon before project name
+  "projectName": "📂",    // Icon before project name
+  "sessionDuration": "⏳"  // Icon before session duration
 }
 ```
 
@@ -351,16 +388,21 @@ Popular alternatives:
 
 ---
 
-## Time Format
+## Last Message Display
 
 ```json
-"time": {
+"lastMessage": {
+  "style": "timestamp",    // "timestamp" (default) or "elapsed"
   "format": "24h"          // Use "12h" for 12-hour (2:30 PM)
                           // Use "24h" for 24-hour (14:30)
 }
 ```
 
-Note: Time only updates when messages are sent, not continuously.
+**Styles:**
+- `timestamp` (default): Shows the time the last message was sent (e.g., "2:30 PM" or "14:30")
+- `elapsed`: Shows how long ago the last message was sent (e.g., "2m ago", "1h 23m ago")
+
+Note: Previously configured as `"time"` - old configs still work via backward compatibility.
 
 ---
 
@@ -370,23 +412,23 @@ The session cost is **automatically calculated** based on Anthropic API pricing 
 
 ### Pricing (per million tokens)
 
-**Claude 3.5 Haiku:**
-- Input: $0.80
-- Output: $4.00
-- Cache write: $1.00 (1.25x input)
-- Cache read: $0.08 (10% of input)
+**Haiku 4.5:**
+- Input: $1.00
+- Output: $5.00
+- Cache write: $1.25 (1.25x input)
+- Cache read: $0.10 (0.1x input)
 
-**Claude 3.5 Sonnet:**
+**Sonnet 4.5 / 4.6:**
 - Input: $3.00
 - Output: $15.00
 - Cache write: $3.75 (1.25x input)
-- Cache read: $0.30 (10% of input)
+- Cache read: $0.30 (0.1x input)
 
-**Claude 3 Opus:**
-- Input: $15.00
-- Output: $75.00
-- Cache write: $18.75 (1.25x input)
-- Cache read: $1.50 (10% of input)
+**Opus 4.6:**
+- Input: $5.00
+- Output: $25.00
+- Cache write: $6.25 (1.25x input)
+- Cache read: $0.50 (0.1x input)
 
 ### Display Settings
 
@@ -405,6 +447,26 @@ The cost is cumulative for the entire session and updates with each message.
 
 ---
 
+## Model Aliases
+
+Shorten long model display names to save statusline space:
+
+```json
+"modelAliases": {
+  "Opus 4.6 (1M context)": "Opus 4.6",
+  "Sonnet 4.6 (1M context)": "Sonnet 4.6",
+  "Sonnet 4.5": "Sonnet 4.5",
+  "Haiku 4.5": "Haiku 4.5"
+}
+```
+
+- Keys must match the **exact** model display name from Claude Code
+- Values are what gets shown in the statusline
+- Models not in the map display their original name unchanged
+- Add or remove entries as new models are released
+
+---
+
 ## Separator
 
 Character between sections:
@@ -419,6 +481,64 @@ Alternatives: `┃ | ▏ ▎ • · ❯ ›`
 
 ---
 
+## Compact Mode
+
+Automatically trims sections from the right when the statusline exceeds terminal width:
+
+```json
+"compact": {
+  "enabled": false,
+  "maxWidth": 0
+}
+```
+
+- `enabled`: Set to `true` to activate compact mode
+- `maxWidth`: Maximum character width before trimming. `0` = auto-detect terminal width
+
+When enabled, sections are removed from the right side of the statusline until the output fits within the specified width. This is useful for narrow terminals or when many sections are enabled.
+
+---
+
+## Theme Presets
+
+Quickly switch between predefined configurations:
+
+```json
+"theme": "minimal"
+```
+
+### Available Themes
+
+| Theme | Description |
+|-------|-------------|
+| `minimal` | Model, progress bar, tokens, directory only. No icons. |
+| `developer` | Adds session cost, git, compact mode on top of minimal. |
+| `full` | Everything enabled with compact mode. |
+
+### How Themes Work
+
+- Themes are JSON files in the `themes/` folder that overlay `config.json` values
+- Theme settings are merged on top of your config (theme values take priority)
+- Set `"theme": "minimal"` (or `"developer"` or `"full"`) in your config.json
+- Remove the `"theme"` key to use your raw config.json settings
+
+### Custom Themes
+
+Create your own theme by adding a JSON file to the `themes/` folder:
+
+```bash
+# Example: themes/mysetup.json
+```
+
+Then reference it in config.json:
+```json
+"theme": "mysetup"
+```
+
+The theme file only needs to contain the settings you want to override.
+
+---
+
 ## Examples
 
 ### Minimal Setup
@@ -428,11 +548,11 @@ Alternatives: `┃ | ▏ ▎ • · ❯ ›`
   "model": true,
   "progressBar": true,
   "directory": true,
-  "time": true
+  "lastMessage": true
 }
 ```
 
-Result: `Claude 3.5 Sonnet │ ████ 40% ████ │ projects │ ⏱ 16:30`
+Result: `Sonnet 4.6 │ ████ 40% ████ │ projects │ ⏱ 16:30`
 
 ### Developer Focus
 
@@ -469,11 +589,11 @@ Result shows model, progress, tokens, cache stats, last call tokens, git, and di
 
 Result: Vim mode appears first, prominently displayed.
 
-### Custom Order - Time First
+### Custom Order - Last Message First
 
 ```json
 "order": [
-  "time",
+  "lastMessage",
   "model",
   "progressBar",
   "totalTokens",
@@ -483,7 +603,7 @@ Result: Vim mode appears first, prominently displayed.
 ]
 ```
 
-Result: Time appears at the start instead of the end.
+Result: Last message time appears at the start instead of the end.
 
 ### Cost Tracking
 
@@ -511,7 +631,7 @@ Shows: `💰 $0.0234 │ ⚡ 38k/200k │ ↑ 25k ↓ 13k`
 }
 ```
 
-When running with `--agent`, shows: `🤖 test-runner │ Claude 3.5 Sonnet │ ...`
+When running with `--agent`, shows: `🤖 test-runner │ Sonnet 4.6 │ ...`
 
 ---
 
@@ -528,7 +648,7 @@ Put most important info first:
   "git",
   "directory",
   "model",
-  "time"
+  "lastMessage"
 ]
 ```
 
@@ -549,7 +669,7 @@ Result: No emoji/symbols, just text and colors.
   "model": "33",           // Yellow
   "git": "32",            // Green
   "directory": "34",      // Blue
-  "time": "35"            // Magenta
+  "lastMessage": "35"     // Magenta
 }
 ```
 
@@ -584,7 +704,7 @@ Result: No emoji/symbols, just text and colors.
 | `tokens` | Input/output cumulative | When token data available |
 | `git` | Branch name | When in git repository |
 | `directory` | Current directory | Always (if enabled) |
-| `time` | Current time | Always (if enabled) |
+| `lastMessage` | Last message time (timestamp or elapsed) | Always (if enabled) |
 
 ### Optional Sections
 
@@ -598,6 +718,7 @@ Result: No emoji/symbols, just text and colors.
 | `agentName` | Agent identifier | When using --agent | Agent workflows |
 | `appVersion` | Claude Code version | Always (if enabled) | Version tracking |
 | `projectName` | Root project dir | Always (if enabled) | Multi-project work |
+| `sessionDuration` | Session running time | Always (if enabled) | Tracking session length |
 
 ---
 
@@ -767,9 +888,9 @@ When helping users customize their statusline:
 
 ### Common Requests
 
-**"Hide time"**
+**"Hide last message time"**
 ```json
-"sections": { "time": false }
+"sections": { "lastMessage": false }
 ```
 
 **"Change model color to green"**
@@ -779,7 +900,12 @@ When helping users customize their statusline:
 
 **"Use 12-hour time"**
 ```json
-"time": { "format": "12h" }
+"lastMessage": { "style": "timestamp", "format": "12h" }
+```
+
+**"Show elapsed time instead"**
+```json
+"lastMessage": { "style": "elapsed" }
 ```
 
 **"No icons"**
@@ -792,9 +918,14 @@ When helping users customize their statusline:
 "sections": { "vimMode": true }
 ```
 
-**"Reorder: put time first"**
+**"Reorder: put last message first"**
 ```json
-"order": ["time", "model", "progressBar", "..."]
+"order": ["lastMessage", "model", "progressBar", "..."]
+```
+
+**"Shorten model name"**
+```json
+"modelAliases": { "Opus 4.6 (1M context)": "Opus 4.6" }
 ```
 
 ### All Section Names
@@ -806,7 +937,8 @@ Valid section names for `sections` and `order`:
 - `tokens`
 - `git`
 - `directory`
-- `time`
+- `lastMessage`
+- `sessionDuration`
 - `outputStyle`
 - `vimMode`
 - `sessionCost`
@@ -826,7 +958,7 @@ Valid section names for `sections` and `order`:
 - **Repository**: https://github.com/proxikal/claude-statusline
 - **Requires**: `jq` (JSON processor), `bc` (calculations), `git` (optional)
 - **Updates**: Every message
-- **Context window**: 200k tokens (33k autocompact buffer)
+- **Context window**: Up to 1M tokens (model dependent, 33k autocompact buffer)
 - **Architecture**: Function-based rendering with modular sections
 - **Cache cleanup**: Automatic when session ends (PPID-based isolation)
 

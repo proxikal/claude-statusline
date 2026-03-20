@@ -1,0 +1,26 @@
+{
+  "_comment": "Full theme - everything enabled",
+  "order": ["model", "progressBar", "totalTokens", "tokens", "sessionCost", "cacheStats", "lastCallTokens", "outputStyle", "vimMode", "agentName", "appVersion", "git", "projectName", "directory", "sessionDuration", "lastMessage"],
+  "sections": {
+    "model": true,
+    "progressBar": true,
+    "totalTokens": true,
+    "tokens": true,
+    "git": true,
+    "directory": true,
+    "lastMessage": true,
+    "sessionDuration": true,
+    "outputStyle": true,
+    "vimMode": true,
+    "sessionCost": true,
+    "cacheStats": true,
+    "lastCallTokens": true,
+    "agentName": true,
+    "appVersion": true,
+    "projectName": true
+  },
+  "compact": {
+    "enabled": true,
+    "maxWidth": 0
+  }
+}

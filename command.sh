@@ -6,7 +6,7 @@
 ################################################################################
 
 # Version
-STATUSLINE_VERSION="1.0.0"
+STATUSLINE_VERSION="1.1.0"
 
 # Read JSON input from stdin
 input=$(cat)
@@ -19,12 +19,29 @@ CONFIG_FILE="${SCRIPT_DIR}/config.json"
 # HELPER FUNCTIONS
 ################################################################################
 
+# Load theme: merge theme file over config into a combined JSON
+THEME_FILE=""
+if [ -f "$SCRIPT_DIR/config.json" ]; then
+    ACTIVE_THEME=$(jq -r '.theme // empty' "$SCRIPT_DIR/config.json" 2>/dev/null)
+    if [ -n "$ACTIVE_THEME" ]; then
+        THEME_FILE="$SCRIPT_DIR/themes/${ACTIVE_THEME}.json"
+    fi
+fi
+
+# Build effective config: config.json * theme overlay
+if [ -n "$THEME_FILE" ] && [ -f "$THEME_FILE" ]; then
+    EFFECTIVE_CONFIG=$(jq -s '.[0] * .[1]' "$SCRIPT_DIR/config.json" "$THEME_FILE" 2>/dev/null)
+else
+    EFFECTIVE_CONFIG=$(cat "$SCRIPT_DIR/config.json" 2>/dev/null)
+fi
+
 # Read config with fallback to default
 read_config() {
     local key=$1
     local default=$2
-    if [ -f "$CONFIG_FILE" ]; then
-        local value=$(jq -r "$key // \"$default\"" "$CONFIG_FILE" 2>/dev/null)
+    if [ -n "$EFFECTIVE_CONFIG" ]; then
+        # Use 'has' style check to avoid jq's // treating false as empty
+        local value=$(echo "$EFFECTIVE_CONFIG" | jq -r "if ($key) != null then ($key) else \"$default\" end" 2>/dev/null)
         if [ "$value" != "null" ] && [ -n "$value" ]; then
             echo "$value"
         else
@@ -129,6 +146,7 @@ CACHE_PERCENTAGE="${CACHE_DIR}/cache-used_percentage"
 CACHE_INPUT="${CACHE_DIR}/cache-total_input"
 CACHE_OUTPUT="${CACHE_DIR}/cache-total_output"
 CACHE_CONTEXT="${CACHE_DIR}/cache-context_size"
+CACHE_MODEL="${CACHE_DIR}/cache-model_name"
 
 # Cache used_percentage
 if [ -n "$used_percentage" ] && [ "$used_percentage" != "null" ] && [ "$used_percentage" != "empty" ]; then
@@ -148,6 +166,13 @@ if [ -n "$context_window_size" ] && [ "$context_window_size" != "null" ]; then
     echo "$context_window_size" > "$CACHE_CONTEXT" 2>/dev/null
 else
     [ -f "$CACHE_CONTEXT" ] && context_window_size=$(cat "$CACHE_CONTEXT" 2>/dev/null)
+fi
+
+# Cache model_name (same pattern as tokens — use JSON value, cache as fallback)
+if [ -n "$model_name" ] && [ "$model_name" != "null" ]; then
+    echo "$model_name" > "$CACHE_MODEL" 2>/dev/null
+else
+    [ -f "$CACHE_MODEL" ] && model_name=$(cat "$CACHE_MODEL" 2>/dev/null)
 fi
 
 # Cache total_input
@@ -237,7 +262,8 @@ COLOR_TOKENS_INPUT=$(color_code "$(read_config '.colors.tokens.input' '38;5;39')
 COLOR_TOKENS_OUTPUT=$(color_code "$(read_config '.colors.tokens.output' '38;5;27')")
 COLOR_GIT=$(color_code "$(read_config '.colors.git' '35')")
 COLOR_DIRECTORY=$(color_code "$(read_config '.colors.directory' '31')")
-COLOR_TIME=$(color_code "$(read_config '.colors.time' '36')")
+COLOR_TIME=$(color_code "$(read_config '.colors.lastMessage' '36')")
+COLOR_SESSION_DURATION=$(color_code "$(read_config '.colors.sessionDuration' '38;5;244')")
 COLOR_OUTPUT_STYLE=$(color_code "$(read_config '.colors.outputStyle' '38;5;213')")
 COLOR_VIM_INSERT=$(color_code "$(read_config '.colors.vimMode.insert' '38;5;46')")
 COLOR_VIM_NORMAL=$(color_code "$(read_config '.colors.vimMode.normal' '38;5;33')")
@@ -263,18 +289,27 @@ PBAR_TEXT_EMPTY=$(color_code "$(read_config '.progressBar.textColors.onEmpty' '9
 TOKEN_WARNING=$(read_config '.tokens.warningThresholds.warning' '60000')
 TOKEN_CRITICAL=$(read_config '.tokens.warningThresholds.critical' '40000')
 
-# Time format
-TIME_FORMAT=$(read_config '.time.format' '24h')
+# Last message / time settings
+TIME_FORMAT=$(read_config '.lastMessage.format' '24h')
+# Fallback to old .time.format for backward compat
+[ "$TIME_FORMAT" = "24h" ] && TIME_FORMAT=$(read_config '.time.format' '24h')
+LAST_MSG_STYLE=$(read_config '.lastMessage.style' 'timestamp')
+
 
 # Session cost settings
 COST_SYMBOL=$(read_config '.sessionCost.currencySymbol' '$')
 COST_DECIMALS=$(read_config '.sessionCost.decimals' '4')
 
+# Compact mode
+COMPACT_ENABLED=$(read_config '.compact.enabled' 'false')
+COMPACT_MAX_WIDTH=$(read_config '.compact.maxWidth' '0')
+
 # Load icons
 ICON_TOKENS=$(read_config '.icons.tokens' '⚡')
 ICON_GIT=$(read_config '.icons.git' '⎇')
 ICON_DIRECTORY=$(read_config '.icons.directory' '📁')
-ICON_TIME=$(read_config '.icons.time' '⏱')
+ICON_TIME=$(read_config '.icons.lastMessage' '⏱')
+ICON_SESSION_DURATION=$(read_config '.icons.sessionDuration' '⏳')
 ICON_OUTPUT_STYLE=$(read_config '.icons.outputStyle' '✨')
 ICON_VIM=$(read_config '.icons.vimMode' '✏️')
 ICON_COST=$(read_config '.icons.sessionCost' '💰')
@@ -349,7 +384,10 @@ create_progress_bar() {
 
 render_model() {
     [ -z "$model_name" ] || [ "$model_name" = "null" ] && return
-    echo "${COLOR_MODEL}${model_name}${RESET}"
+    local display_name
+    display_name=$(echo "$EFFECTIVE_CONFIG" | jq -r --arg m "$model_name" '.modelAliases[$m] // empty' 2>/dev/null)
+    [ -z "$display_name" ] && display_name="$model_name"
+    echo "${COLOR_MODEL}${display_name}${RESET}"
 }
 
 render_progressBar() {
@@ -380,14 +418,20 @@ render_totalTokens() {
 
     # Format tokens
     local total_display max_display
-    if [ "$actual_used_tokens" -gt 1000 ]; then
+    if [ "$actual_used_tokens" -ge 1000000 ]; then
+        total_display=$(echo "scale=1; $actual_used_tokens / 1000000" | bc -l | sed 's/\.0$//')
+        total_display="${total_display}M"
+    elif [ "$actual_used_tokens" -gt 1000 ]; then
         total_display=$(echo "scale=0; $actual_used_tokens / 1000" | bc -l)
         total_display="${total_display}k"
     else
         total_display="0k"
     fi
 
-    if [ "$context_window_size" -gt 1000 ]; then
+    if [ "$context_window_size" -ge 1000000 ]; then
+        max_display=$(echo "scale=1; $context_window_size / 1000000" | bc -l | sed 's/\.0$//')
+        max_display="${max_display}M"
+    elif [ "$context_window_size" -gt 1000 ]; then
         max_display=$(echo "scale=0; $context_window_size / 1000" | bc -l)
         max_display="${max_display}k"
     else
@@ -432,7 +476,7 @@ render_vimMode() {
 }
 
 render_sessionCost() {
-    # Calculate cost based on Anthropic API pricing (January 2025)
+    # Calculate cost based on Anthropic API pricing (March 2026)
     [ -z "$total_input" ] || [ "$total_input" = "null" ] && return
     [ -z "$total_output" ] || [ "$total_output" = "null" ] && return
 
@@ -447,19 +491,19 @@ render_sessionCost() {
     local input_rate output_rate cache_write_rate cache_read_rate
 
     if [[ "$model_lower" == *"haiku"* ]]; then
-        # Haiku pricing (per million tokens)
-        input_rate="0.80"
-        output_rate="4.00"
-        cache_write_rate="1.00"
-        cache_read_rate="0.08"
+        # Haiku 4.5 pricing (per million tokens)
+        input_rate="1.00"
+        output_rate="5.00"
+        cache_write_rate="1.25"
+        cache_read_rate="0.10"
     elif [[ "$model_lower" == *"opus"* ]]; then
-        # Opus pricing (per million tokens)
-        input_rate="15.00"
-        output_rate="75.00"
-        cache_write_rate="18.75"
-        cache_read_rate="1.50"
+        # Opus 4.6 pricing (per million tokens)
+        input_rate="5.00"
+        output_rate="25.00"
+        cache_write_rate="6.25"
+        cache_read_rate="0.50"
     else
-        # Sonnet pricing (default - per million tokens)
+        # Sonnet 4.5/4.6 pricing (default - per million tokens)
         input_rate="3.00"
         output_rate="15.00"
         cache_write_rate="3.75"
@@ -555,18 +599,66 @@ render_directory() {
     echo "${COLOR_DIRECTORY}${icon}${dir_name}${RESET}"
 }
 
-render_time() {
-    local current_time
-    if [ "$TIME_FORMAT" = "12h" ]; then
-        current_time=$(date "+%I:%M %p")
+render_lastMessage() {
+    local display
+    if [ "$LAST_MSG_STYLE" = "elapsed" ]; then
+        # Show elapsed time since session start
+        local cache_start="${CACHE_DIR}/.session-start"
+        if [ ! -f "$cache_start" ]; then
+            date +%s > "$cache_start"
+        fi
+        local start_ts=$(cat "$cache_start" 2>/dev/null)
+        local now_ts=$(date +%s)
+        local elapsed=$(( now_ts - start_ts ))
+        if [ "$elapsed" -lt 60 ]; then
+            display="just now"
+        elif [ "$elapsed" -lt 3600 ]; then
+            display="$(( elapsed / 60 ))m ago"
+        else
+            display="$(( elapsed / 3600 ))h $(( (elapsed % 3600) / 60 ))m ago"
+        fi
     else
-        current_time=$(date "+%H:%M")
+        # Default: show timestamp of last message
+        if [ "$TIME_FORMAT" = "12h" ]; then
+            display=$(date "+%I:%M %p")
+        else
+            display=$(date "+%H:%M")
+        fi
     fi
 
     local icon=""
     [ "$ICONS_ENABLED" = "true" ] && icon="${ICON_TIME} "
 
-    echo "${COLOR_TIME}${icon}${current_time}${RESET}"
+    echo "${COLOR_TIME}${icon}${display}${RESET}"
+}
+
+# Backward compat alias
+render_time() { render_lastMessage; }
+
+render_sessionDuration() {
+    local cache_start="${CACHE_DIR}/.session-start"
+    if [ ! -f "$cache_start" ]; then
+        date +%s > "$cache_start"
+    fi
+    local start_ts=$(cat "$cache_start" 2>/dev/null)
+    local now_ts=$(date +%s)
+    local elapsed=$(( now_ts - start_ts ))
+
+    local display
+    if [ "$elapsed" -lt 60 ]; then
+        display="<1m"
+    elif [ "$elapsed" -lt 3600 ]; then
+        display="$(( elapsed / 60 ))m"
+    else
+        local h=$(( elapsed / 3600 ))
+        local m=$(( (elapsed % 3600) / 60 ))
+        display="${h}h ${m}m"
+    fi
+
+    local icon=""
+    [ "$ICONS_ENABLED" = "true" ] && icon="${ICON_SESSION_DURATION} "
+
+    echo "${COLOR_SESSION_DURATION}${icon}${display}${RESET}"
 }
 
 render_updateNotification() {
@@ -598,42 +690,76 @@ section_order=$(read_config '.order' '')
 
 # If no order specified, use default
 if [ -z "$section_order" ] || [ "$section_order" = "null" ]; then
-    section_order='["model","progressBar","totalTokens","tokens","git","directory","time"]'
+    section_order='["model","progressBar","totalTokens","tokens","git","directory","lastMessage"]'
 fi
 
 # Parse order array
 sections=$(echo "$section_order" | jq -r '.[]' 2>/dev/null)
 
-# Build statusline
-output=""
-first_section=true
+# Helper: strip ANSI codes and measure visible width
+visible_length() {
+    echo -n "$1" | sed $'s/\033\[[0-9;]*m//g' | wc -m | tr -d ' '
+}
 
-# Always check for update notification first (overrides order)
+# Determine max width for compact mode
+max_width=0
+if [ "$COMPACT_ENABLED" = "true" ]; then
+    if [ "$COMPACT_MAX_WIDTH" -gt 0 ] 2>/dev/null; then
+        max_width="$COMPACT_MAX_WIDTH"
+    else
+        max_width=$(tput cols 2>/dev/null || echo 0)
+    fi
+fi
+
+# Build section outputs into arrays
+declare -a section_outputs=()
+declare -a section_names=()
+
+# Always check for update notification first
 update_notification=$(render_updateNotification 2>/dev/null)
 if [ -n "$update_notification" ]; then
-    output="$update_notification"
-    first_section=false
+    section_outputs+=("$update_notification")
+    section_names+=("updateNotification")
     debug_log "Section SHOWN: updateNotification"
 fi
 
 for section in $sections; do
-    # Check if section is enabled
     if section_enabled "$section"; then
-        # Render section
         section_output=$(render_$section 2>/dev/null)
-
-        # Add to output if not empty
         if [ -n "$section_output" ]; then
-            if [ "$first_section" = true ]; then
-                output="$section_output"
-                first_section=false
-            else
-                output+=" ${COLOR_SEPARATOR}${SEPARATOR}${RESET} ${section_output}"
-            fi
+            section_outputs+=("$section_output")
+            section_names+=("$section")
             debug_log "Section SHOWN: $section"
         else
             debug_log "Section HIDDEN: $section (no data)"
         fi
+    fi
+done
+
+# Assemble output, respecting compact mode width limit
+sep=" ${COLOR_SEPARATOR}${SEPARATOR}${RESET} "
+sep_width=3  # " | " is 3 visible chars
+
+output=""
+current_width=0
+for i in "${!section_outputs[@]}"; do
+    local_width=$(visible_length "${section_outputs[$i]}")
+
+    if [ -z "$output" ]; then
+        # First section
+        if [ "$max_width" -gt 0 ] && [ "$local_width" -gt "$max_width" ]; then
+            break
+        fi
+        output="${section_outputs[$i]}"
+        current_width=$local_width
+    else
+        new_width=$(( current_width + sep_width + local_width ))
+        if [ "$max_width" -gt 0 ] && [ "$new_width" -gt "$max_width" ]; then
+            debug_log "Section TRIMMED (compact): ${section_names[$i]}"
+            continue
+        fi
+        output+="${sep}${section_outputs[$i]}"
+        current_width=$new_width
     fi
 done
 

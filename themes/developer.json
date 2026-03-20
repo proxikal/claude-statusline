@@ -1,0 +1,26 @@
+{
+  "_comment": "Developer theme - tokens, git, cost tracking, compact",
+  "order": ["model", "progressBar", "totalTokens", "tokens", "sessionCost", "git", "directory", "lastMessage"],
+  "sections": {
+    "model": true,
+    "progressBar": true,
+    "totalTokens": true,
+    "tokens": true,
+    "git": true,
+    "directory": true,
+    "lastMessage": true,
+    "sessionDuration": false,
+    "outputStyle": false,
+    "vimMode": false,
+    "sessionCost": true,
+    "cacheStats": false,
+    "lastCallTokens": false,
+    "agentName": false,
+    "appVersion": false,
+    "projectName": false
+  },
+  "compact": {
+    "enabled": true,
+    "maxWidth": 0
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "_comment": "Minimal theme - just the essentials",
+  "order": ["model", "progressBar", "totalTokens", "directory"],
+  "sections": {
+    "model": true,
+    "progressBar": true,
+    "totalTokens": true,
+    "tokens": false,
+    "git": false,
+    "directory": true,
+    "lastMessage": false,
+    "sessionDuration": false,
+    "outputStyle": false,
+    "vimMode": false,
+    "sessionCost": false,
+    "cacheStats": false,
+    "lastCallTokens": false,
+    "agentName": false,
+    "appVersion": false,
+    "projectName": false
+  },
+  "icons": {
+    "enabled": false
+  },
+  "progressBar": {
+    "width": 15
+  }
+}

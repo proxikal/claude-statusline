@@ -1,6 +1,7 @@
 {
   "_comment": "Claude Code Statusline Configuration",
   "_description": "Customize your statusline appearance. Edit values below to change colors, icons, and behavior.",
+  "_themeComment": "Set 'theme' to load a preset from themes/ folder (minimal, developer, full). Theme values override config values. Remove or leave empty to use config as-is.",
 
   "order": [
     "model",
@@ -17,7 +18,8 @@
     "git",
     "projectName",
     "directory",
-    "time"
+    "lastMessage",
+    "sessionDuration"
   ],
 
   "sections": {
@@ -25,13 +27,14 @@
     "model": true,
     "progressBar": true,
     "totalTokens": true,
-    "tokens": true,
+    "tokens": false,
     "git": true,
     "directory": true,
-    "time": true,
+    "lastMessage": true,
+    "sessionDuration": false,
     "outputStyle": false,
     "vimMode": false,
-    "sessionCost": true,
+    "sessionCost": false,
     "cacheStats": false,
     "lastCallTokens": false,
     "agentName": false,
@@ -55,7 +58,8 @@
     },
     "git": "35",
     "directory": "31",
-    "time": "36",
+    "lastMessage": "36",
+    "sessionDuration": "38;5;244",
     "separator": "37",
     "outputStyle": "38;5;213",
     "vimMode": {
@@ -102,9 +106,17 @@
   },
 
   "sessionCost": {
-    "_comment": "Session cost display settings. Cost is calculated based on Anthropic API pricing (Jan 2025). Haiku: $0.80/$4.00 input/output per million. Sonnet: $3.00/$15.00. Opus: $15.00/$75.00. Cache write is 1.25x input, cache read is 10% input.",
+    "_comment": "Session cost display settings. Pricing (Mar 2026, per million tokens): Haiku 4.5: $1/$5. Sonnet 4.5/4.6: $3/$15. Opus 4.6: $5/$25. Cache write is 1.25x input, cache read is 0.1x input.",
     "currencySymbol": "$",
     "decimals": 2
+  },
+
+  "modelAliases": {
+    "_comment": "Map model display names to shorter labels. Use exact display name as key.",
+    "Opus 4.6 (1M context)": "Opus 4.6 - 1M",
+    "Sonnet 4.6 (1M context)": "Sonnet 4.6 - 1M",
+    "Sonnet 4.5": "Sonnet 4.5",
+    "Haiku 4.5": "Haiku 4.5"
   },
 
   "icons": {
@@ -113,7 +125,8 @@
     "tokens": "⚡",
     "git": "⎇",
     "directory": "📁",
-    "time": "⏱",
+    "lastMessage": "⏱",
+    "sessionDuration": "⏳",
     "outputStyle": "✨",
     "vimMode": "✏️",
     "sessionCost": "💰",
@@ -124,9 +137,16 @@
     "projectName": "📂"
   },
 
-  "time": {
-    "_comment": "Time display format: '12h' for 12-hour (2:30 PM), '24h' for 24-hour (14:30)",
+  "lastMessage": {
+    "_comment": "Last message display. style: 'timestamp' (shows time) or 'elapsed' (shows '2m ago'). format: '12h' or '24h' (only for timestamp style)",
+    "style": "timestamp",
     "format": "24h"
+  },
+
+  "compact": {
+    "_comment": "Auto-trim sections from the right when statusline exceeds terminal width. Set maxWidth to 0 to auto-detect terminal width.",
+    "enabled": false,
+    "maxWidth": 0
   },
 
   "separator": {
