@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y jq bc
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install jq
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: choco install jq -y
+
+      - name: Validate JSON configs
+        shell: bash
+        run: |
+          echo "Validating config.json..."
+          jq . config.json > /dev/null
+          for theme in themes/*.json; do
+            echo "Validating $theme..."
+            jq . "$theme" > /dev/null
+          done
+          echo "All JSON files valid."
+
+      - name: Test statusline renders (basic)
+        shell: bash
+        run: |
+          echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"workspace":{"current_dir":"/tmp/test","project_dir":"/tmp/test"},"context_window":{"total_input_tokens":45000,"total_output_tokens":12000,"used_percentage":35,"context_window_size":1000000}}' | bash command.sh > /tmp/output.txt 2>&1
+          if [ ! -s /tmp/output.txt ]; then
+            echo "ERROR: statusline produced no output"
+            exit 1
+          fi
+          echo "Basic render: PASS"
+          cat /tmp/output.txt
+
+      - name: Test with high context usage
+        shell: bash
+        run: |
+          echo '{"model":{"display_name":"Sonnet 4.5"},"workspace":{"current_dir":"/tmp/test","project_dir":"/tmp/test"},"context_window":{"total_input_tokens":180000,"total_output_tokens":50000,"used_percentage":85,"context_window_size":200000}}' | bash command.sh > /tmp/output.txt 2>&1
+          if [ ! -s /tmp/output.txt ]; then
+            echo "ERROR: statusline produced no output"
+            exit 1
+          fi
+          echo "High context render: PASS"
+
+      - name: Test with 1M context window
+        shell: bash
+        run: |
+          output=$(echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"workspace":{"current_dir":"/tmp/test","project_dir":"/tmp/test"},"context_window":{"total_input_tokens":500000,"total_output_tokens":200000,"used_percentage":70,"context_window_size":1000000}}' | bash command.sh 2>&1)
+          # Strip ANSI and check for 1M
+          clean=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g')
+          if echo "$clean" | grep -q "1M"; then
+            echo "1M token display: PASS"
+          else
+            echo "ERROR: expected '1M' in output"
+            echo "Got: $clean"
+            exit 1
+          fi
+
+      - name: Test model alias
+        shell: bash
+        run: |
+          output=$(echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"workspace":{"current_dir":"/tmp/test","project_dir":"/tmp/test"},"context_window":{"total_input_tokens":1000,"total_output_tokens":500,"used_percentage":5,"context_window_size":1000000}}' | bash command.sh 2>&1)
+          clean=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g')
+          if echo "$clean" | grep -q "Opus 4.6 - 1M"; then
+            echo "Model alias: PASS"
+          else
+            echo "ERROR: expected 'Opus 4.6 - 1M' in output"
+            echo "Got: $clean"
+            exit 1
+          fi
+
+      - name: Test minimal input (no crash on missing fields)
+        shell: bash
+        run: |
+          echo '{}' | bash command.sh > /dev/null 2>&1
+          echo "Minimal input (no crash): PASS"
+
+      - name: Test theme merging
+        shell: bash
+        run: |
+          # Temporarily set theme to minimal
+          cp config.json config.json.bak
+          jq '. + {"theme": "minimal"}' config.json > config.tmp && mv config.tmp config.json
+          output=$(echo '{"model":{"display_name":"Opus 4.6 (1M context)"},"workspace":{"current_dir":"/tmp/test","project_dir":"/tmp/test"},"context_window":{"total_input_tokens":1000,"total_output_tokens":500,"used_percentage":10,"context_window_size":1000000}}' | bash command.sh 2>&1)
+          mv config.json.bak config.json
+          clean=$(echo "$output" | sed 's/\x1b\[[0-9;]*m//g')
+          # Minimal theme should NOT have git icon
+          if echo "$clean" | grep -q "⎇"; then
+            echo "ERROR: minimal theme should not show git"
+            echo "Got: $clean"
+            exit 1
+          fi
+          echo "Theme merging: PASS"
+
+      - name: Test named colors resolve
+        shell: bash
+        run: |
+          # Source resolve_color and test it
+          source <(sed -n '/^resolve_color/,/^}/p' command.sh)
+          result=$(resolve_color "red")
+          if [ "$result" = "31" ]; then
+            echo "Named color 'red': PASS"
+          else
+            echo "ERROR: expected '31', got '$result'"
+            exit 1
+          fi
+          result=$(resolve_color "38;5;208")
+          if [ "$result" = "38;5;208" ]; then
+            echo "Raw code passthrough: PASS"
+          else
+            echo "ERROR: expected '38;5;208', got '$result'"
+            exit 1
+          fi
+          result=$(resolve_color "Orange")
+          if [ "$result" = "38;5;208" ]; then
+            echo "Case-insensitive named color: PASS"
+          else
+            echo "ERROR: expected '38;5;208', got '$result'"
+            exit 1
+          fi
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    name: ShellCheck lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Run ShellCheck
+        run: shellcheck --severity=error command.sh

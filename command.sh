@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ################################################################################
 # Claude Code Statusline Script
@@ -7,6 +7,14 @@
 
 # Version
 STATUSLINE_VERSION="1.1.0"
+
+# Dependency check
+for cmd in jq bc; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Missing required dependency: $cmd" >&2
+        exit 1
+    fi
+done
 
 # Read JSON input from stdin
 input=$(cat)
@@ -105,7 +113,7 @@ color_code() {
 # Debug logging function
 debug_log() {
     if [ "$DEBUG_ENABLED" = "true" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S.%3N')] $1" >> "$DEBUG_LOGFILE"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$DEBUG_LOGFILE"
     fi
 }
 
@@ -183,7 +191,7 @@ fi
 
 # Use session-specific cache directory (auto-cleaned when session ends)
 # Falls back to parent shell PID for session isolation
-CACHE_DIR="${TMPDIR:-/tmp}/claude-statusline-${PPID}"
+CACHE_DIR="${TMPDIR:-${TEMP:-/tmp}}/claude-statusline-${PPID}"
 mkdir -p "$CACHE_DIR" 2>/dev/null
 
 CACHE_PERCENTAGE="${CACHE_DIR}/cache-used_percentage"
@@ -751,7 +759,7 @@ if [ "$COMPACT_ENABLED" = "true" ]; then
     if [ "$COMPACT_MAX_WIDTH" -gt 0 ] 2>/dev/null; then
         max_width="$COMPACT_MAX_WIDTH"
     else
-        max_width=$(tput cols 2>/dev/null || echo 0)
+        max_width=$(tput cols 2>/dev/null || echo "${COLUMNS:-0}")
     fi
 fi
 
