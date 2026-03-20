@@ -52,9 +52,53 @@ read_config() {
     fi
 }
 
+# Resolve named color to ANSI code, or pass through raw codes
+resolve_color() {
+    local input=$1
+    case "${input,,}" in  # lowercase comparison
+        # Standard colors
+        black)          echo "30" ;;
+        red)            echo "31" ;;
+        green)          echo "32" ;;
+        yellow)         echo "33" ;;
+        blue)           echo "34" ;;
+        magenta|purple) echo "35" ;;
+        cyan)           echo "36" ;;
+        white)          echo "37" ;;
+        # Bright colors
+        bright-black|gray|grey)     echo "90" ;;
+        bright-red)                 echo "91" ;;
+        bright-green)               echo "92" ;;
+        bright-yellow)              echo "93" ;;
+        bright-blue)                echo "94" ;;
+        bright-magenta|bright-purple) echo "95" ;;
+        bright-cyan)                echo "96" ;;
+        bright-white)               echo "97" ;;
+        # Popular extended colors
+        orange)         echo "38;5;208" ;;
+        pink)           echo "38;5;213" ;;
+        light-blue)     echo "38;5;39" ;;
+        dark-blue)      echo "38;5;27" ;;
+        teal)           echo "38;5;30" ;;
+        lime)           echo "38;5;46" ;;
+        coral)          echo "38;5;209" ;;
+        salmon)         echo "38;5;173" ;;
+        violet)         echo "38;5;141" ;;
+        gold)           echo "38;5;220" ;;
+        silver)         echo "38;5;249" ;;
+        # Background variants (for progress bar)
+        bg-green)       echo "48;5;46" ;;
+        bg-yellow)      echo "48;5;226" ;;
+        bg-red)         echo "48;5;196" ;;
+        bg-dark|bg-gray|bg-grey) echo "48;5;236" ;;
+        # Pass through raw ANSI codes as-is
+        *)              echo "$input" ;;
+    esac
+}
+
 # Convert color code to ANSI escape
 color_code() {
-    local code=$1
+    local code=$(resolve_color "$1")
     echo $'\033['"${code}m"
 }
 

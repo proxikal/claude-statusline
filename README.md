@@ -199,25 +199,45 @@ Set any to `false` to hide that section. Set to `true` to show.
 
 ## Colors
 
-### Basic Color Codes
+You can use **named colors** (easy) or **raw ANSI codes** (advanced). Both work anywhere a color is expected.
 
-**Standard Colors (30-37, 90-97):**
-- `30` = Black
-- `31` = Red
-- `32` = Green
-- `33` = Yellow
-- `34` = Blue
-- `35` = Magenta
-- `36` = Cyan
-- `37` = White
-- `90-97` = Bright versions (e.g., `97` = Bright White)
+### Named Colors
+
+```json
+"colors": {
+  "model": "cyan",
+  "git": "magenta",
+  "directory": "red",
+  "lastMessage": "bright-blue",
+  "sessionCost": "gold"
+}
+```
+
+**Standard:**
+`black` `red` `green` `yellow` `blue` `magenta` `cyan` `white`
+
+**Bright:**
+`bright-black` `bright-red` `bright-green` `bright-yellow` `bright-blue` `bright-magenta` `bright-cyan` `bright-white`
+
+**Aliases:**
+`gray` / `grey` (= bright-black), `purple` (= magenta), `bright-purple` (= bright-magenta)
+
+**Extended:**
+`orange` `pink` `light-blue` `dark-blue` `teal` `lime` `coral` `salmon` `violet` `gold` `silver`
+
+**Background (for progress bar):**
+`bg-green` `bg-yellow` `bg-red` `bg-dark` / `bg-gray`
+
+### Raw ANSI Codes (Advanced)
+
+For full control, use raw ANSI codes directly:
+
+**Standard (30-37, 90-97):**
+`"31"` = Red, `"36"` = Cyan, `"97"` = Bright White
 
 **256-Color Palette:**
-Use `38;5;N` for foreground colors where N is 0-255.
-Examples:
-- `38;5;39` = Light Blue
-- `38;5;208` = Orange
-- `38;5;196` = Bright Red
+`"38;5;N"` for foreground (N = 0-255), `"48;5;N"` for background.
+Examples: `"38;5;208"` = Orange, `"38;5;39"` = Light Blue
 
 [Full 256-color reference](https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit)
 
@@ -225,12 +245,12 @@ Examples:
 
 ```json
 "colors": {
-  "model": "36",              // Model name color (cyan)
-  "percentage": "97",         // Percentage text in progress bar (bright white)
-  "git": "35",               // Git branch color (magenta)
-  "directory": "31",         // Directory name color (red)
-  "lastMessage": "36",       // Last message time color (cyan)
-  "separator": "37"          // Separator character color (white)
+  "model": "cyan",
+  "percentage": "bright-white",
+  "git": "magenta",
+  "directory": "red",
+  "lastMessage": "cyan",
+  "separator": "white"
 }
 ```
 
@@ -238,18 +258,18 @@ Examples:
 
 ```json
 "colors": {
-  "outputStyle": "38;5;213",       // Output style (pink/magenta)
+  "outputStyle": "pink",
   "vimMode": {
-    "insert": "38;5;46",           // INSERT mode (bright green)
-    "normal": "38;5;33"            // NORMAL mode (blue)
+    "insert": "lime",
+    "normal": "blue"
   },
-  "sessionCost": "38;5;226",       // Session cost (yellow)
-  "cacheStats": "38;5;141",        // Cache statistics (purple)
-  "lastCallTokens": "38;5;249",    // Last call tokens (gray)
-  "agentName": "38;5;208",         // Agent name (orange)
-  "appVersion": "38;5;244",        // App version (dark gray)
-  "projectName": "38;5;99",        // Project name (purple)
-  "sessionDuration": "38;5;117"    // Session duration (light blue)
+  "sessionCost": "gold",
+  "cacheStats": "violet",
+  "lastCallTokens": "silver",
+  "agentName": "orange",
+  "appVersion": "gray",
+  "projectName": "violet",
+  "sessionDuration": "light-blue"
 }
 ```
 
@@ -666,10 +686,10 @@ Result: No emoji/symbols, just text and colors.
 
 ```json
 "colors": {
-  "model": "33",           // Yellow
-  "git": "32",            // Green
-  "directory": "34",      // Blue
-  "lastMessage": "35"     // Magenta
+  "model": "yellow",
+  "git": "green",
+  "directory": "blue",
+  "lastMessage": "magenta"
 }
 ```
 
@@ -895,7 +915,7 @@ When helping users customize their statusline:
 
 **"Change model color to green"**
 ```json
-"colors": { "model": "32" }
+"colors": { "model": "green" }
 ```
 
 **"Use 12-hour time"**
