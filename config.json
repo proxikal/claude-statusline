@@ -149,6 +149,11 @@
     "maxWidth": 0
   },
 
+  "padToWidth": {
+    "_comment": "Pad statusline to full terminal width with spaces. Hides appended text like Claude Code's update notification.",
+    "enabled": true
+  },
+
   "separator": {
     "_comment": "Character between sections. Try: │ ┃ | ▏ ▎",
     "character": "│"

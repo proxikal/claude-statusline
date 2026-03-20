@@ -819,4 +819,17 @@ done
 # OUTPUT STATUSLINE
 ################################################################################
 
+# Pad output to terminal width to suppress appended text (e.g., update nags)
+PAD_ENABLED=$(read_config '.padToWidth.enabled' 'false')
+if [ "$PAD_ENABLED" = "true" ]; then
+    local_term_width=$(tput cols 2>/dev/null || echo "${COLUMNS:-0}")
+    if [ "$local_term_width" -gt 0 ]; then
+        output_width=$(visible_length "$output")
+        pad_needed=$((local_term_width - output_width))
+        if [ "$pad_needed" -gt 0 ]; then
+            output+=$(printf "%${pad_needed}s" "")
+        fi
+    fi
+fi
+
 echo "$output"
