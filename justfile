@@ -17,9 +17,9 @@ install:
     @echo "Add to ~/.claude/settings.json:"
     @echo '  "statusLine": {"command": "bash /Users/proxikal/dev/projects/claude-statusline/command.sh"}'
 
-# Test run
+# Run test suite
 test:
-    bash command.sh
+    bash test.sh
 
 # Deploy to global ~/.claude/statusline
 deploy:
