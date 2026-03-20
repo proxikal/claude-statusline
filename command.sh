@@ -54,8 +54,8 @@ read_config() {
 
 # Resolve named color to ANSI code, or pass through raw codes
 resolve_color() {
-    local input=$1
-    case "${input,,}" in  # lowercase comparison
+    local input=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    case "$input" in
         # Standard colors
         black)          echo "30" ;;
         red)            echo "31" ;;
